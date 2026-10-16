@@ -117,6 +117,10 @@ reph after the consonant it sits on. The text is still written in correct
 Unicode order. It is the same option as in Avro Keyboard for Windows, and works
 with Unicode and ANSI output alike.
 
+<p align="center">
+  <img src="docs/assets/screenshots/old-style-typing.png" width="560" alt="The Preferences window with Use Full Old Style Typing turned on for the Unijoy layout">
+</p>
+
 With Unijoy:
 
 | Keys | Typed as | Gives |

@@ -115,6 +115,10 @@
 বসে। এটি উইন্ডোজের অভ্র কিবোর্ডের একই অপশন, আর ইউনিকোড ও ANSI দুই আউটপুটেই কাজ
 করে।
 
+<p align="center">
+  <img src="docs/assets/screenshots/old-style-typing.png" width="560" alt="Preferences উইন্ডোতে ইউনিজয় লেআউটের জন্য Use Full Old Style Typing চালু">
+</p>
+
 ইউনিজয়ে:
 
 | কি | যা টাইপ হয় | ফলাফল |
