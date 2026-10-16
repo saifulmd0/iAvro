@@ -27,10 +27,16 @@ final class AvroKeyboardController: IMKInputController, @unchecked Sendable {
     private var heldDeadKey: String?
     /// What the last key of a fixed layout typed, while typing goes on uninterrupted.
     private var lastFixedText: String?
-    /// What each key of the current word typed, when a fixed layout outputs ANSI. Bijoy
-    /// draws some vowel signs before their consonant, so the word is held as marked text
-    /// and converted as a whole when it ends.
-    private var ansiWord: [String] = []
+    /// What each key of the current word typed, while a fixed layout holds the word as
+    /// marked text. With ANSI output, Bijoy draws some vowel signs before their consonant,
+    /// so the word is converted as a whole when it ends; with old style typing, a vowel
+    /// sign or reph is moved into place by a later key.
+    private var heldWord: [String] = []
+
+    /// Whether a fixed layout holds the current word as marked text.
+    private var holdsWord: Bool {
+        Preferences.outputAsANSI || Preferences.oldStyleTyping
+    }
 
     // MARK: - Candidate window
 
@@ -133,9 +139,9 @@ final class AvroKeyboardController: IMKInputController, @unchecked Sendable {
 
     private func commitComposition() {
         lastFixedText = nil
-        if heldDeadKey != nil || !ansiWord.isEmpty {
+        if heldDeadKey != nil || !heldWord.isEmpty {
             releaseDeadKey()
-            commitANSIWord()
+            commitHeldWord()
             return
         }
         client()?.insertText(composedText, replacementRange: NSRange(location: NSNotFound, length: 0))
@@ -161,7 +167,7 @@ final class AvroKeyboardController: IMKInputController, @unchecked Sendable {
         }
         // The layout may have been switched back to phonetic mid-word.
         releaseDeadKey()
-        commitANSIWord()
+        commitHeldWord()
         lastFixedText = nil
 
         if string == " " {
@@ -182,14 +188,14 @@ final class AvroKeyboardController: IMKInputController, @unchecked Sendable {
     private func handle(_ aSelector: Selector?) -> Bool {
         let lastFixedText = lastFixedText
         self.lastFixedText = nil
-        if heldDeadKey != nil || !ansiWord.isEmpty {
+        if heldDeadKey != nil || !heldWord.isEmpty {
             if aSelector == #selector(NSResponder.deleteBackward(_:)) {
                 if heldDeadKey != nil {
                     heldDeadKey = nil
                     self.lastFixedText = lastFixedText
                 } else {
-                    ansiWord.removeLast()
-                    self.lastFixedText = ansiWord.last
+                    heldWord.removeLast()
+                    self.lastFixedText = heldWord.last
                 }
                 updateFixedMarkedText()
                 return true
@@ -197,7 +203,7 @@ final class AvroKeyboardController: IMKInputController, @unchecked Sendable {
             // Any other command types the dead key as is and ends the word, then goes to
             // the client.
             releaseDeadKey()
-            commitANSIWord()
+            commitHeldWord()
             return false
         }
 
@@ -252,9 +258,9 @@ final class AvroKeyboardController: IMKInputController, @unchecked Sendable {
         if !composition.isEmpty {
             commitSelectedCandidate()
         }
-        // ANSI output may have been turned off mid-word.
-        if !Preferences.outputAsANSI {
-            commitANSIWord()
+        // ANSI output or old style typing may have been turned off mid-word.
+        if !holdsWord {
+            commitHeldWord()
         }
 
         if heldDeadKey != nil, let text = layout.afterDeadKey[string] {
@@ -271,7 +277,7 @@ final class AvroKeyboardController: IMKInputController, @unchecked Sendable {
         }
         guard var text = layout.keys[string] else {
             lastFixedText = nil
-            commitANSIWord()
+            commitHeldWord()
             return false
         }
         if let previous = lastFixedText, let replacement = layout.afterText[previous]?[string] {
@@ -288,24 +294,33 @@ final class AvroKeyboardController: IMKInputController, @unchecked Sendable {
         insert(text)
     }
 
-    /// Types `text` into the client, or adds it to the ANSI word.
+    /// Types `text` into the client, or adds it to the held word.
     private func insert(_ text: String) {
         lastFixedText = text
-        if Preferences.outputAsANSI {
-            ansiWord.append(text)
+        if holdsWord {
+            heldWord.append(text)
             updateFixedMarkedText()
         } else {
             client()?.insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))
         }
     }
 
-    /// Shows the ANSI word and the held dead key as marked text.
+    /// The held word in Unicode, put in logical order when typed in old style.
+    private var heldWordText: String {
+        Preferences.oldStyleTyping ? OldStyleTyping.reorder(heldWord) : heldWord.joined()
+    }
+
+    /// Shows the held word and the held dead key as marked text.
     private func updateFixedMarkedText() {
-        guard Preferences.outputAsANSI else {
+        guard holdsWord else {
             setMarkedText(heldDeadKey ?? "")
             return
         }
-        var text = Bijoy.convert(ansiWord.joined())
+        guard Preferences.outputAsANSI else {
+            setMarkedText(heldWordText + (heldDeadKey ?? ""))
+            return
+        }
+        var text = Bijoy.convert(heldWordText)
         if let deadKey = heldDeadKey {
             // A lone hasanta has no glyph of its own in Bijoy, so show the visible one.
             text += Bijoy.convert(deadKey + "\u{200C}")
@@ -313,11 +328,11 @@ final class AvroKeyboardController: IMKInputController, @unchecked Sendable {
         setMarkedText(text)
     }
 
-    /// Commits the ANSI word, converted to Bijoy.
-    private func commitANSIWord() {
-        guard !ansiWord.isEmpty else { return }
-        let text = Bijoy.convert(ansiWord.joined())
-        ansiWord = []
+    /// Commits the held word, converted to Bijoy with ANSI output.
+    private func commitHeldWord() {
+        guard !heldWord.isEmpty else { return }
+        let text = Preferences.outputAsANSI ? Bijoy.convert(heldWordText) : heldWordText
+        heldWord = []
         client()?.insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))
     }
 

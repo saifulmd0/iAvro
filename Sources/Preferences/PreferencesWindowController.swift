@@ -17,7 +17,7 @@ final class PreferencesWindowController: NSWindowController {
         var identifier: NSToolbarItem.Identifier { NSToolbarItem.Identifier(rawValue) }
         var size: NSSize {
             switch self {
-            case .general: return NSSize(width: 450, height: 179)
+            case .general: return NSSize(width: 450, height: 241)
             case .autoCorrect: return NSSize(width: 450, height: 331)
             case .credits: return NSSize(width: 450, height: 450)
             }
@@ -116,6 +116,17 @@ final class PreferencesWindowController: NSWindowController {
         let outputAsANSI = NSButton(checkboxWithTitle: "Output as ANSI (Bijoy fonts)", target: nil, action: nil)
         outputAsANSI.bind(.value, to: defaults, withKeyPath: "values.\(Preferences.Key.outputAsANSI)")
 
+        let oldStyleTyping = NSButton(checkboxWithTitle: "Use Full Old Style Typing", target: nil, action: nil)
+        oldStyleTyping.bind(.value, to: defaults, withKeyPath: "values.\(Preferences.Key.oldStyleTyping)")
+
+        let oldStyleNote = NSTextField(wrappingLabelWithString: "Type ি, ে and ৈ before their consonant and the reph after it, as on a typewriter.")
+        oldStyleNote.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        oldStyleNote.textColor = .secondaryLabelColor
+        oldStyleNote.preferredMaxLayoutWidth = 236
+
+        // Only the fixed layouts (every layout but 0) are typed in old style.
+        oldStyleTyping.bind(.enabled, to: defaults, withKeyPath: "values.\(Preferences.Key.keyboardLayout)")
+
         let orientation = NSPopUpButton(frame: .zero, pullsDown: false)
         for (title, tag) in [("Horizontal", kIMKSingleRowSteppingCandidatePanel), ("Vertical", kIMKSingleColumnScrollingCandidatePanel)] {
             orientation.addItem(withTitle: title)
@@ -142,6 +153,8 @@ final class PreferencesWindowController: NSWindowController {
         let grid = NSGridView(views: [
             [layoutLabel, layout],
             [NSGridCell.emptyContentView, outputAsANSI],
+            [NSGridCell.emptyContentView, oldStyleTyping],
+            [NSGridCell.emptyContentView, oldStyleNote],
             [label, orientation],
             [NSGridCell.emptyContentView, includeDictionary],
             [NSGridCell.emptyContentView, commitNewline],
@@ -150,8 +163,9 @@ final class PreferencesWindowController: NSWindowController {
         grid.columnSpacing = 8
         grid.column(at: 0).xPlacement = .trailing
         grid.row(at: 0).yPlacement = .center
-        grid.row(at: 2).yPlacement = .center
-        grid.row(at: 1).bottomPadding = 8
+        grid.row(at: 4).yPlacement = .center
+        grid.row(at: 2).bottomPadding = -4
+        grid.row(at: 3).bottomPadding = 8
 
         let container = NSView()
         grid.translatesAutoresizingMaskIntoConstraints = false

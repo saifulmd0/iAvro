@@ -12,6 +12,7 @@ enum Preferences {
     enum Key {
         static let keyboardLayout = "KeyboardLayout"
         static let outputAsANSI = "OutputAsANSI"
+        static let oldStyleTyping = "OldStyleTyping"
         static let candidatePanelType = "CandidatePanelType"
         static let includeDictionary = "IncludeDictionary"
         static let commitNewLineOnEnter = "CommitNewLineOnEnter"
@@ -59,6 +60,13 @@ enum Preferences {
     /// Bijoy fonts) instead of Unicode, with every layout.
     static var outputAsANSI: Bool {
         UserDefaults.standard.bool(forKey: Key.outputAsANSI)
+    }
+
+    /// Whether the fixed layouts take vowel signs before their consonant and the reph
+    /// after it, as on a typewriter, and put the text in logical (Unicode) order. This is
+    /// "Full Old Style Typing" in Avro Keyboard for Windows.
+    static var oldStyleTyping: Bool {
+        UserDefaults.standard.bool(forKey: Key.oldStyleTyping)
     }
 
     /// Orientation of the candidate window. Defaults to `kIMKSingleRowSteppingCandidatePanel`
