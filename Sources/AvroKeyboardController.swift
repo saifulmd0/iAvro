@@ -306,8 +306,8 @@ final class AvroKeyboardController: IMKInputController, @unchecked Sendable {
     }
 
     /// The held word in Unicode, put in logical order when typed in old style.
-    private var heldWordText: String {
-        Preferences.oldStyleTyping ? OldStyleTyping.reorder(heldWord) : heldWord.joined()
+    private func heldWordText(atWordEnd: Bool = false) -> String {
+        Preferences.oldStyleTyping ? OldStyleTyping.reorder(heldWord, atWordEnd: atWordEnd) : heldWord.joined()
     }
 
     /// Shows the held word and the held dead key as marked text.
@@ -317,10 +317,10 @@ final class AvroKeyboardController: IMKInputController, @unchecked Sendable {
             return
         }
         guard Preferences.outputAsANSI else {
-            setMarkedText(heldWordText + (heldDeadKey ?? ""))
+            setMarkedText(heldWordText() + (heldDeadKey ?? ""))
             return
         }
-        var text = Bijoy.convert(heldWordText)
+        var text = Bijoy.convert(heldWordText())
         if let deadKey = heldDeadKey {
             // A lone hasanta has no glyph of its own in Bijoy, so show the visible one.
             text += Bijoy.convert(deadKey + "\u{200C}")
@@ -331,7 +331,8 @@ final class AvroKeyboardController: IMKInputController, @unchecked Sendable {
     /// Commits the held word, converted to Bijoy with ANSI output.
     private func commitHeldWord() {
         guard !heldWord.isEmpty else { return }
-        let text = Preferences.outputAsANSI ? Bijoy.convert(heldWordText) : heldWordText
+        let unicode = heldWordText(atWordEnd: true)
+        let text = Preferences.outputAsANSI ? Bijoy.convert(unicode) : unicode
         heldWord = []
         client()?.insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))
     }

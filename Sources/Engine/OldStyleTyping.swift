@@ -12,19 +12,36 @@ import Foundation
 /// consonant, and the reph after the consonant it sits on. This puts the text back in
 /// logical (Unicode) order, so `ে` `ক` gives কে and `ক` `র্` gives র্ক.
 ///
+/// A vowel sign with no consonant to carry it makes the full vowel, as with automatic vowel
+/// forming in Avro Keyboard for Windows: `ো` at the start of a word gives ও, and `য` `া` `ো`
+/// gives যাও. A sign typed after a hasanta does the same.
+///
 /// It works on what each key of the current word typed, and is replayed from the start
 /// whenever the word changes, so removing the last key is simply typing one key fewer.
 enum OldStyleTyping {
     /// The text `units` type in old style order, each unit being what one key typed.
     ///
-    /// A prebase vowel sign still waiting for its consonant is left at the end, as typed.
-    static func reorder(_ units: [String]) -> String {
+    /// A prebase vowel sign still waiting for its consonant is left at the end as typed,
+    /// unless the word has ended (`atWordEnd`) and there is nothing to carry it, when it
+    /// makes the full vowel.
+    static func reorder(_ units: [String], atWordEnd: Bool = false) -> String {
         var text: [Unicode.Scalar] = []
         var pending: Unicode.Scalar?
 
         for unit in units {
             let scalars = Array(unit.unicodeScalars)
             guard let first = scalars.first else { continue }
+
+            if scalars.count == 1, let vowel = fullVowels[first], text.last == hasanta {
+                // A vowel sign after a hasanta makes the full vowel instead.
+                text.removeLast()
+                if let kar = pending {
+                    text.append(kar)
+                    pending = nil
+                }
+                text.append(vowel)
+                continue
+            }
 
             if let kar = pending {
                 if scalars.count == 1, prebase.contains(first) {
@@ -42,11 +59,9 @@ enum OldStyleTyping {
                     insertReph(into: &text)
                     text.append(kar)
                     pending = nil
-                } else if kar == eKar, scalars == [aaKar] {
-                    text.append(oKar)
-                    pending = nil
-                } else if kar == eKar, scalars == [auLengthMark] {
-                    text.append(auKar)
+                } else if kar == eKar, scalars == [aaKar] || scalars == [auLengthMark] {
+                    let joined = first == aaKar ? oKar : auKar
+                    text.append(carriesVowelSign(text) ? joined : fullVowels[joined]!)
                     pending = nil
                 } else {
                     text += scalars
@@ -68,6 +83,8 @@ enum OldStyleTyping {
                 insertReph(into: &text)
             } else if scalars == [aaKar] || scalars == [auLengthMark] {
                 appendLengthMark(first, to: &text)
+            } else if scalars.count == 1, let vowel = fullVowels[first], !carriesVowelSign(text) {
+                text.append(vowel)
             } else if isPhala(scalars), let last = text.last, kars.contains(last) {
                 // ্র, ্য and র‍্য belong before the vowel sign of their consonant.
                 text.removeLast()
@@ -79,7 +96,7 @@ enum OldStyleTyping {
         }
 
         if let kar = pending {
-            text.append(kar)
+            text.append(atWordEnd && !carriesVowelSign(text) ? fullVowels[kar] ?? kar : kar)
         }
         var result = ""
         result.unicodeScalars.append(contentsOf: text)
@@ -89,7 +106,7 @@ enum OldStyleTyping {
     // MARK: - Rules
 
     /// Adds া or ৗ, joining it to a ে before it (with or without a chandrabindu) to make ো
-    /// or ৌ, and া to অ to make আ.
+    /// or ৌ, and া to অ to make আ. A া with nothing else to join or sit on makes আ.
     private static func appendLengthMark(_ mark: Unicode.Scalar, to text: inout [Unicode.Scalar]) {
         let joined = mark == aaKar ? oKar : auKar
         if text.last == eKar {
@@ -98,9 +115,18 @@ enum OldStyleTyping {
             text[text.count - 2] = joined
         } else if mark == aaKar, text.last == letterA {
             text[text.count - 1] = letterAA
+        } else if mark == aaKar, !carriesVowelSign(text) {
+            text.append(letterAA)
         } else {
             text.append(mark)
         }
+    }
+
+    /// Whether the end of `text` can take a vowel sign: a consonant, a hasanta, a
+    /// chandrabindu after one, or a joiner typed on purpose.
+    private static func carriesVowelSign(_ text: [Unicode.Scalar]) -> Bool {
+        guard let last = text.last else { return false }
+        return isConsonant(last) || [hasanta, chandrabindu, zwj, zwnj].contains(last)
     }
 
     /// Puts a reph before the conjunct it was typed after, which may end in a vowel sign
@@ -137,6 +163,7 @@ enum OldStyleTyping {
     private static let auKar: Unicode.Scalar = "\u{09CC}"
     private static let auLengthMark: Unicode.Scalar = "\u{09D7}"
     private static let zwj: Unicode.Scalar = "\u{200D}"
+    private static let zwnj: Unicode.Scalar = "\u{200C}"
 
     /// The vowel signs drawn before their consonant: ি, ে and ৈ.
     private static let prebase: Set<Unicode.Scalar> = ["\u{09BF}", "\u{09C7}", "\u{09C8}"]
@@ -145,6 +172,14 @@ enum OldStyleTyping {
     private static let kars: Set<Unicode.Scalar> = [
         "\u{09BE}", "\u{09BF}", "\u{09C0}", "\u{09C1}", "\u{09C2}",
         "\u{09C3}", "\u{09C7}", "\u{09C8}", "\u{09CB}", "\u{09CC}",
+    ]
+
+    /// The full vowel each vowel sign makes when there is nothing to carry it.
+    private static let fullVowels: [Unicode.Scalar: Unicode.Scalar] = [
+        "\u{09BE}": "\u{0986}", "\u{09BF}": "\u{0987}", "\u{09C0}": "\u{0988}",
+        "\u{09C1}": "\u{0989}", "\u{09C2}": "\u{098A}", "\u{09C3}": "\u{098B}",
+        "\u{09C7}": "\u{098F}", "\u{09C8}": "\u{0990}", "\u{09CB}": "\u{0993}",
+        "\u{09CC}": "\u{0994}",
     ]
 
     /// ক to হ, ড় ঢ় য়, and khanda ta.

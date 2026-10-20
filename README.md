@@ -130,7 +130,15 @@ With Unijoy:
 | <kbd>d</kbd> <kbd>j</kbd> <kbd>g</kbd> <kbd>N</kbd> | ি ক ্ ষ | ক্ষি |
 | <kbd>c</kbd> <kbd>h</kbd> <kbd>z</kbd> | ে ব ্র | ব্রে |
 | <kbd>j</kbd> <kbd>m</kbd> <kbd>A</kbd> | ক ম র্ | কর্ম |
+| <kbd>x</kbd> | ো | ও |
+| <kbd>w</kbd> <kbd>f</kbd> <kbd>x</kbd> | য া ো | যাও |
 
+- A vowel sign with no consonant to carry it makes the full vowel, as with
+  automatic vowel forming in Avro Keyboard for Windows: at the start of a word,
+  after another vowel sign or after a vowel. <kbd>g</kbd> followed by a
+  vowel-sign key still makes the full vowel too, so <kbd>g</kbd> <kbd>x</kbd>
+  also gives ও. ি, ে and ৈ wait for the consonant that follows them, so they
+  only make ই, এ and ঐ when the word ends without one, as in খাই.
 - A vowel sign typed before a conjunct moves to its end, and ্র or ্য typed
   after a vowel sign goes before it.
 - ে followed by া or ৗ makes ো or ৌ, and অ followed by া makes আ.
