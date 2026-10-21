@@ -12,9 +12,12 @@ import Foundation
 /// consonant, and the reph after the consonant it sits on. This puts the text back in
 /// logical (Unicode) order, so `ে` `ক` gives কে and `ক` `র্` gives র্ক.
 ///
+/// ো and ৌ are made from ে the typewriter way, `ে` `ক` `া` giving কো and `ে` `ক` `ৌ` giving
+/// কৌ, so the ো key always types ও (হও, যাও) and the ৌ key acts as the ৌ length mark ৗ.
+///
 /// A vowel sign with no consonant to carry it makes the full vowel, as with automatic vowel
-/// forming in Avro Keyboard for Windows: `ো` at the start of a word gives ও, and `য` `া` `ো`
-/// gives যাও. A sign typed after a hasanta does the same.
+/// forming in Avro Keyboard for Windows, so `া` at the start of a word gives আ. A sign typed
+/// after a hasanta does the same.
 ///
 /// It works on what each key of the current word typed, and is replayed from the start
 /// whenever the word changes, so removing the last key is simply typing one key fewer.
@@ -29,7 +32,12 @@ enum OldStyleTyping {
         var pending: Unicode.Scalar?
 
         for unit in units {
-            let scalars = Array(unit.unicodeScalars)
+            var scalars = Array(unit.unicodeScalars)
+            if scalars == [oKar] {
+                scalars = [letterO]
+            } else if scalars == [auKar] {
+                scalars = [auLengthMark]
+            }
             guard let first = scalars.first else { continue }
 
             if scalars.count == 1, let vowel = fullVowels[first], text.last == hasanta {
@@ -106,7 +114,8 @@ enum OldStyleTyping {
     // MARK: - Rules
 
     /// Adds া or ৗ, joining it to a ে before it (with or without a chandrabindu) to make ো
-    /// or ৌ, and া to অ to make আ. A া with nothing else to join or sit on makes আ.
+    /// or ৌ, and া to অ to make আ. With nothing else to join, ৗ sits on a consonant as ৌ, and
+    /// either one with nothing to sit on makes আ or ঔ.
     private static func appendLengthMark(_ mark: Unicode.Scalar, to text: inout [Unicode.Scalar]) {
         let joined = mark == aaKar ? oKar : auKar
         if text.last == eKar {
@@ -115,18 +124,18 @@ enum OldStyleTyping {
             text[text.count - 2] = joined
         } else if mark == aaKar, text.last == letterA {
             text[text.count - 1] = letterAA
-        } else if mark == aaKar, !carriesVowelSign(text) {
-            text.append(letterAA)
+        } else if !carriesVowelSign(text) {
+            text.append(mark == aaKar ? letterAA : letterAU)
         } else {
-            text.append(mark)
+            text.append(mark == aaKar ? aaKar : auKar)
         }
     }
 
-    /// Whether the end of `text` can take a vowel sign: a consonant, a hasanta, a
-    /// chandrabindu after one, or a joiner typed on purpose.
+    /// Whether the end of `text` can take a vowel sign: a consonant (য়, ড় and ঢ় end in a
+    /// nukta), a hasanta, a chandrabindu after one, or a joiner typed on purpose.
     private static func carriesVowelSign(_ text: [Unicode.Scalar]) -> Bool {
         guard let last = text.last else { return false }
-        return isConsonant(last) || [hasanta, chandrabindu, zwj, zwnj].contains(last)
+        return isConsonant(last) || [nukta, hasanta, chandrabindu, zwj, zwnj].contains(last)
     }
 
     /// Puts a reph before the conjunct it was typed after, which may end in a vowel sign
@@ -139,15 +148,24 @@ enum OldStyleTyping {
         if index >= 0, kars.contains(text[index]) {
             index -= 1
         }
-        guard index >= 0, isConsonant(text[index]) else {
+        guard var start = consonantStart(endingAt: index, in: text) else {
             text += reph
             return
         }
         // Walk back over the rest of the conjunct.
-        while index >= 2, text[index - 1] == hasanta, isConsonant(text[index - 2]) {
-            index -= 2
+        while start >= 2, text[start - 1] == hasanta, let previous = consonantStart(endingAt: start - 2, in: text) {
+            start = previous
         }
-        text.insert(contentsOf: reph, at: index)
+        text.insert(contentsOf: reph, at: start)
+    }
+
+    /// Where the consonant ending at `index` starts: at `index`, or before its nukta.
+    private static func consonantStart(endingAt index: Int, in text: [Unicode.Scalar]) -> Int? {
+        guard index >= 0 else { return nil }
+        if text[index] == nukta {
+            return index >= 1 && isConsonant(text[index - 1]) ? index - 1 : nil
+        }
+        return isConsonant(text[index]) ? index : nil
     }
 
     // MARK: - Characters
@@ -155,8 +173,11 @@ enum OldStyleTyping {
     private static let hasanta: Unicode.Scalar = "\u{09CD}"
     private static let reph: [Unicode.Scalar] = ["\u{09B0}", hasanta]
     private static let chandrabindu: Unicode.Scalar = "\u{0981}"
+    private static let nukta: Unicode.Scalar = "\u{09BC}"
     private static let letterA: Unicode.Scalar = "\u{0985}"
     private static let letterAA: Unicode.Scalar = "\u{0986}"
+    private static let letterO: Unicode.Scalar = "\u{0993}"
+    private static let letterAU: Unicode.Scalar = "\u{0994}"
     private static let aaKar: Unicode.Scalar = "\u{09BE}"
     private static let eKar: Unicode.Scalar = "\u{09C7}"
     private static let oKar: Unicode.Scalar = "\u{09CB}"

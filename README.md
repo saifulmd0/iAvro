@@ -130,18 +130,19 @@ With Unijoy:
 | <kbd>d</kbd> <kbd>j</kbd> <kbd>g</kbd> <kbd>N</kbd> | ি ক ্ ষ | ক্ষি |
 | <kbd>c</kbd> <kbd>h</kbd> <kbd>z</kbd> | ে ব ্র | ব্রে |
 | <kbd>j</kbd> <kbd>m</kbd> <kbd>A</kbd> | ক ম র্ | কর্ম |
-| <kbd>x</kbd> | ো | ও |
-| <kbd>w</kbd> <kbd>f</kbd> <kbd>x</kbd> | য া ো | যাও |
+| <kbd>c</kbd> <kbd>j</kbd> <kbd>X</kbd> | ে ক ৌ | কৌ |
+| <kbd>i</kbd> <kbd>x</kbd> | হ ও | হও |
+| <kbd>w</kbd> <kbd>f</kbd> <kbd>x</kbd> | য া ও | যাও |
 
+- ো and ৌ are made from ে, as on a typewriter: ে followed by া makes ো, and by
+  ৌ makes ৌ. So the ো key (<kbd>x</kbd> on Unijoy) always types ও, as in হও
+  and নেও. অ followed by া makes আ.
 - A vowel sign with no consonant to carry it makes the full vowel, as with
-  automatic vowel forming in Avro Keyboard for Windows: at the start of a word,
-  after another vowel sign or after a vowel. <kbd>g</kbd> followed by a
-  vowel-sign key still makes the full vowel too, so <kbd>g</kbd> <kbd>x</kbd>
-  also gives ও. ি, ে and ৈ wait for the consonant that follows them, so they
-  only make ই, এ and ঐ when the word ends without one, as in খাই.
+  automatic vowel forming in Avro Keyboard for Windows, so া at the start of a
+  word or after a vowel makes আ. ি, ে and ৈ wait for the consonant that follows
+  them, so they only make ই, এ and ঐ when the word ends without one, as in খাই.
 - A vowel sign typed before a conjunct moves to its end, and ্র or ্য typed
   after a vowel sign goes before it.
-- ে followed by া or ৗ makes ো or ৌ, and অ followed by া makes আ.
 - Press ি, ে or ৈ twice to type the sign on its own.
 - The word you are typing stays underlined until you press space, Return or
   another key outside the layout, because a later key can still move a vowel
